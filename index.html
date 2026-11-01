@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CraftAce - Full Game & Leaderboard</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #11111d);
+      color: #fff;
+      text-align: center;
+      padding: 10px;
+      margin: 0;
+      user-select: none;
+    }
+    h1 { margin: 5px 0; color: #f39c12; font-size: 20px; }
+    
+    .balance-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 10px;
+      margin: 8px auto;
+      max-width: 340px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-around;
+      font-size: 14px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      background: #2a2a40;
+      color: #ccc;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 6px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .nav-btn.active { background: #f39c12; color: #111; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Кликер */
+    .click-coin {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffe066, #f39c12);
+      margin: 15px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+      box-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+      cursor: pointer;
+    }
+    .click-coin:active { transform: scale(0.92); }
+
+    /* Краш Игра */
+    .crash-box {
+      width: 220px;
+      height: 140px;
+      background: #2a2a40;
+      border: 3px solid #f39c12;
+      border-radius: 15px;
+      margin: 10px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .crash-ship { font-size: 45px; transition: 0.1s; }
+    .crash-mult { font-size: 28px; font-weight: bold; color: #2ecc71; margin-top: 5px; }
+
+    /* Контейнеры */
+    .box-container {
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 12px;
+      max-width: 330px;
+      margin: 0 auto;
+    }
+    select, input {
+      width: 90%;
+      padding: 8px;
+      margin: 6px 0;
+      border-radius: 8px;
+      background: #2a2a40;
+      color: #fff;
+      border: 1px solid #f39c12;
+      text-align: center;
+    }
+
+    .grid-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      max-height: 240px;
+      overflow-y: auto;
+      padding: 5px;
+    }
+    .card-item {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px;
+      width: 85px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
+    }
+    .card-item span { font-size: 24px; }
+
+    .leader-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      margin: 4px 0;
+      font-size: 13px;
+    }
+
+    button.btn-main {
+      background: #f39c12;
+      color: #111;
+      border: none;
+      padding: 10px 18px;
+      font-weight: bold;
+      border-radius: 15px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button.btn-cashout { background: #27ae60; color: #fff; }
+    .btn-sell { background: #e74c3c; color: #fff; border: none; border-radius: 8px; padding: 3px 6px; font-size: 10px; margin-top: 4px; }
+    .btn-buy { background: #27ae60; color: #fff; border: none; border-radius: 8px; padding: 4px 8px; font-size: 11px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>CraftAce Game 🚢💥</h1>
+  
+  <div class="balance-card">
+    <div>🪙 <b id="tokens">21.0</b></div>
+    <div>🎁 Попытки: <b id="freeSpins">3</b>/3</div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-btn active" onclick="switchTab('crash')">🚢 Краш</button>
+    <button class="nav-btn" onclick="switchTab('clicker')">👆 Кликер</button>
+    <button class="nav-btn" onclick="switchTab('case')">📦 Кейс</button>
+    <button class="nav-btn" onclick="switchTab('upgrader')">⚡ Апгрейд</button>
+    <button class="nav-btn" onclick="switchTab('promo')">🎟️ Промо</button>
+    <button class="nav-btn" onclick="switchTab('shop')">🛒 Салон</button>
+    <button class="nav-btn" onclick="switchTab('inventory')">🎒 Инвентарь</button>
+    <button class="nav-btn" onclick="switchTab('leaders')">🏆 Лидеры</button>
+  </div>
+
+  <!-- КРАШ ИГРА -->
+  <div id="tab-crash" class="tab-content active">
+    <div class="crash-box">
+      <div class="crash-ship" id="crashShip">🚢</div>
+      <div class="crash-mult" id="crashMult">1.00x</div>
+    </div>
+    <div id="crashInputBox" style="margin-bottom: 5px;">
+      <label style="font-size: 12px; color: #ccc;">Ставка (🪙):</label><br>
+      <input type="number" id="crashBetInput" value="25" min="1" style="width: 120px; font-weight: bold;">
+    </div>
+    <div id="crashControls">
+      <button class="btn-main" id="startCrashBtn" onclick="startCrash()">Заплыв</button>
+    </div>
+  </div>
+
+  <!-- КЛИКЕР -->
+  <div id="tab-clicker" class="tab-content">
+    <p>Кликай и забирай +0.2 🪙 за тап!</p>
+    <div class="click-coin" onclick="doClick(event)">🪙</div>
+  </div>
+
+  <!-- CRAFT КЕЙС -->
+  <div id="tab-case" class="tab-content">
+    <div class="crash-box" style="width:140px; height:120px;" id="caseIcon">📦</div>
+    <b id="caseName">Craft Case</b><br>
+    <button class="btn-main" id="openCaseBtn" onclick="openCraftCase()">Открыть (15 🪙)</button>
+  </div>
+
+  <!-- АПГРЕЙДЕР -->
+  <div id="tab-upgrader" class="tab-content">
+    <div class="box-container">
+      <b>Ставишь:</b> <select id="upgradeFrom" onchange="calcChance()"></select>
+      <b>Цель:</b> <select id="upgradeTo" onchange="calcChance()"></select>
+      <div style="margin: 8px 0; color: #f39c12;">Шанс: <b id="chanceVal">0%</b></div>
+      <button class="btn-main" onclick="runUpgrade()">⚡ Апгрейд!</button>
+    </div>
+  </div>
+
+  <!-- ПРОМОКОДЫ -->
+  <div id="tab-promo" class="tab-content">
+    <div class="box-container">
+      <h3>🎟️ Введи промокод:</h3>
+      <input type="text" id="promoInput" placeholder="CraftAce / Dan11l">
+      <button class="btn-main" onclick="claimPromo()">Активировать (+50 🪙)</button>
+    </div>
+  </div>
+
+  <!-- МАГАЗИН -->
+  <div id="tab-shop" class="tab-content"><div class="grid-container" id="shopGrid"></div></div>
+
+  <!-- ИНВЕНТАРЬ -->
+  <div id="tab-inventory" class="tab-content"><div class="grid-container" id="inventoryGrid"></div></div>
+
+  <!-- СПИСОК ЛИДЕРОВ -->
+  <div id="tab-leaders" class="tab-content">
+    <div class="box-container" id="leadersList"></div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) tg.expand();
+
+    // Проверка VIP подкрутки (+5% ко всем шансам) для @Daniil_1000
+    const rawUsername = tg?.initDataUnsafe?.user?.username || 'Игрок';
+    const currentUser = rawUsername.toLowerCase();
+    const isVipUser = currentUser === 'daniil_1000';
+
+    let tokens = parseFloat(localStorage.getItem('tokens')) || 21.0;
+    let freeSpins = parseInt(localStorage.getItem('freeSpins')) || 3;
+    let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
+    let usedPromos = JSON.parse(localStorage.getItem('usedPromos')) || [];
+
+    let crashInterval = null;
+    let currentMult = 1.00;
+    let crashPoint = 1.00;
+    let isPlayingCrash = false;
+    let currentBet = 25;
+
+    const promoCodes = { 'craftace': 50, 'dan11l': 50 };
+
+    const catalog = [
+      { id: 'poop', icon: '💩', name: 'Какашка', price: 1, weight: 400 },
+      { id: 'knife', icon: '🔪', name: 'Нож', price: 7, weight: 300 },
+      { id: 'icecream', icon: '🍦', name: 'Мороженое', price: 15, weight: 150 },
+      { id: 'car', icon: '🚗', name: 'Авто', price: 35, weight: 100 },
+      { id: 'ferrari', icon: '🏎️', name: 'Ferrari', price: 200, weight: 30 },
+      { id: 'yacht', icon: '🛥️', name: 'Яхта', price: 350, weight: 12 },
+      { id: 'rolls', icon: '𝓡', name: 'Rolls-Royce', price: 500, weight: 6 },
+      { id: 'jet', icon: '✈️', name: 'Джет', price: 1000, weight: 2 },
+      { id: 'trophy', icon: '🏆', name: 'Золотой Кубок', price: 10000, weight: 1 },
+      { id: 'diamond', icon: '💎', name: 'Бриллиант', price: 20000, weight: 0.5 },
+      { id: 'crown', icon: '👑', name: 'Корона Имп.', price: 100000, weight: 0.1 }
+    ];
+
+    function updateUI() {
+      document.getElementById('tokens').innerText = tokens.toFixed(1);
+      document.getElementById('freeSpins').innerText = freeSpins;
+      localStorage.setItem('tokens', tokens);
+      localStorage.setItem('freeSpins', freeSpins);
+      localStorage.setItem('inventory', JSON.stringify(inventory));
+      localStorage.setItem('usedPromos', JSON.stringify(usedPromos));
+      renderInventory();
+      renderShop();
+      populateUpgraderSelects();
+      renderLeaders();
+    }
+
+    function switchTab(tabName) {
+      if (isPlayingCrash) return alert('Сначала закончите заплыв в Краше!');
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      if (event && event.target) event.target.classList.add('active');
+    }
+
+    function doClick(e) {
+      tokens += 0.2;
+      updateUI();
+    }
+
+    /* Краш с +5% шансом высокого множителя для Daniil_1000 */
+    function generateCrashPoint() {
+      let rand = Math.random() * 100;
+      let highChance = isVipUser ? 10 : 5; // +5% для VIP
+
+      if (rand < highChance) {
+        return parseFloat((10 + Math.random() * 90).toFixed(2));
+      } else if (rand < 25) {
+        return parseFloat((1.00 + Math.random() * 0.20).toFixed(2));
+      } else {
+        return parseFloat((1.21 + Math.random() * 8.78).toFixed(2));
+      }
+    }
+
+    function startCrash() {
+      const betInput = document.getElementById('crashBetInput');
+      const bet = parseFloat(betInput.value);
+
+      if (isNaN(bet) || bet <= 0) return alert('Введите корректную сумму ставки!');
+      if (tokens < bet) return alert(`Недостаточно жетонов! Ваш баланс: ${tokens.toFixed(1)} 🪙`);
+
+      currentBet = bet;
+      tokens -= currentBet;
+      updateUI();
+
+      isPlayingCrash = true;
+      currentMult = 1.00;
+      crashPoint = generateCrashPoint();
+
+      const multElem = document.getElementById('crashMult');
+      const shipElem = document.getElementById('crashShip');
+      const controls = document.getElementById('crashControls');
+      betInput.disabled = true;
+
+      shipElem.innerText = '🚢';
+      multElem.style.color = '#2ecc71';
+      multElem.innerText = '1.00x';
+
+      controls.innerHTML = `<button class="btn-main btn-cashout" onclick="cashoutCrash()">Забрать (<span id="winPreview">${currentBet.toFixed(1)}</span> 🪙)</button>`;
+
+      crashInterval = setInterval(() => {
+        currentMult += 0.03 + (currentMult * 0.02);
+        
+        if (currentMult >= crashPoint) {
+          clearInterval(crashInterval);
+          isPlayingCrash = false;
+          betInput.disabled = false;
+          shipElem.innerText = '💥';
+          multElem.style.color = '#e74c3c';
+          multElem.innerText = `ЗАТОНУЛ! (${crashPoint.toFixed(2)}x)`;
+          controls.innerHTML = `<button class="btn-main" onclick="startCrash()">Заплыв</button>`;
+        } else {
+          multElem.innerText = currentMult.toFixed(2) + 'x';
+          document.getElementById('winPreview').innerText = (currentBet * currentMult).toFixed(1);
+        }
+      }, 100);
+    }
+
+    function cashoutCrash() {
+      if (!isPlayingCrash) return;
+      clearInterval(crashInterval);
+      isPlayingCrash = false;
+      document.getElementById('crashBetInput').disabled = false;
+
+      let winAmount = parseFloat((currentBet * currentMult).toFixed(1));
+      tokens += winAmount;
+      updateUI();
+
+      const multElem = document.getElementById('crashMult');
+      const controls = document.getElementById('crashControls');
+
+      multElem.style.color = '#f39c12';
+      multElem.innerText = `ЗАБРАНО! (${currentMult.toFixed(2)}x)`;
+      alert(`🎉 Успех! Вы забрали +${winAmount} жетонов!`);
+
+      controls.innerHTML = `<button class="btn-main" onclick="startCrash()">Заплыв</button>`;
+    }
+
+    function openCraftCase() {
+      if (tokens < 15) return alert('Вход стоит 15 жетонов!');
+      tokens -= 15;
+      updateUI();
+
+      const btn = document.getElementById('openCaseBtn');
+      const box = document.getElementById('caseIcon');
+      const caseName = document.getElementById('caseName');
+      btn.disabled = true;
+
+      // Лут кейса с бонусом +5% для VIP на дорогие вещи
+      let modifiedCatalog = catalog.map(item => {
+        let w = item.weight;
+        if (isVipUser && item.price >= 200) w = w * 1.05;
+        return { ...item, weight: w };
+      });
+
+      let totalWeight = modifiedCatalog.reduce((sum, item) => sum + item.weight, 0);
+      let randomNum = Math.random() * totalWeight;
+      let wonItem = modifiedCatalog[0];
+
+      for (let item of modifiedCatalog) {
+        if (randomNum < item.weight) { wonItem = item; break; }
+        randomNum -= item.weight;
+      }
+
+      let spinCount = 0;
+      let interval = setInterval(() => {
+        let tempItem = catalog[Math.floor(Math.random() * catalog.length)];
+        box.innerText = tempItem.icon;
+        spinCount++;
+        if (spinCount > 12) {
+          clearInterval(interval);
+          box.innerText = wonItem.icon;
+          caseName.innerText = wonItem.name;
+          inventory.push(wonItem);
+          updateUI();
+          btn.disabled = false;
+          alert(`🎉 Вы выиграли: ${wonItem.icon} ${wonItem.name}!`);
+        }
+      }, 100);
+    }
+
+    function claimPromo() {
+      const input = document.getElementById('promoInput');
+      const code = input.value.trim().toLowerCase();
+      if (!code) return alert('Введите промокод!');
+      if (usedPromos.includes(code)) return alert('Вы уже использовали этот промокод!');
+
+      if (promoCodes.hasOwnProperty(code)) {
+        tokens += promoCodes[code];
+        usedPromos.push(code);
+        updateUI();
+        input.value = '';
+        alert(`🎉 Получено +${promoCodes[code]} жетонов!`);
+      } else { alert('❌ Неверный промокод!'); }
+    }
+
+    function renderShop() {
+      const grid = document.getElementById('shopGrid');
+      grid.innerHTML = '';
+      catalog.forEach(item => {
+        grid.innerHTML += `<div class="card-item"><span>${item.icon}</span><b>${item.name}</b><button class="btn-buy" onclick="buyItem('${item.id}')">${item.price} 🪙</button></div>`;
+      });
+    }
+
+    function buyItem(itemId) {
+      const item = catalog.find(x => x.id === itemId);
+      if (tokens < item.price) return alert('Недостаточно жетонов!');
+      tokens -= item.price;
+      inventory.push(item);
+      updateUI();
+    }
+
+    function renderInventory() {
+      const grid = document.getElementById('inventoryGrid');
+      grid.innerHTML = inventory.length ? '' : '<span style="
